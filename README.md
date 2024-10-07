@@ -30,11 +30,11 @@ Este projeto consiste em uma API para gerenciar dados meteorológicos de estaç�
    - Retorna todos os dados meteorológicos de uma estação por ano.
 
 4. **Paginação dos dados meteorológicos de uma estação por código e ano**:
-   - `GET /api/estacoes/data/{year}/{code}`
+   - `GET /api/estacoes/data/{year}/{code}?page=0?size=24`
    - Retorna uma página com os dados meteorológicos de uma estação específica.
 
 5. **Resumo dos dados meteorológicos de uma estação por data**:
-   - `GET /api/estacoes/data/{code}`
+   - `GET /api/estacoes/data/{code}?date=2024-01-01`
    - Retorna um resumo dos dados meteorológicos em uma data específica.
 
 ## Tecnologias Utilizadas
