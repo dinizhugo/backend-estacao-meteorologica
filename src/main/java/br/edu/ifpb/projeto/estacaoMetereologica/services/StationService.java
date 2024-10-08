@@ -5,6 +5,7 @@ import br.edu.ifpb.projeto.estacaoMetereologica.domain.Station;
 import br.edu.ifpb.projeto.estacaoMetereologica.dtos.WeatherSummaryResponseDTO;
 import br.edu.ifpb.projeto.estacaoMetereologica.dtos.StationResponseDTO;
 import br.edu.ifpb.projeto.estacaoMetereologica.repositories.StationRepository;
+import br.edu.ifpb.projeto.estacaoMetereologica.services.exceptions.StationNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
@@ -20,11 +21,11 @@ public class StationService {
     private StationRepository stationRepository;
 
     public List<Station> getAllStationsData(String year){
-        return stationRepository.findByYear(year).orElseThrow();
+        return stationRepository.findByYear(year).orElseThrow(StationNotFoundException::new);
     }
 
     public Station getStationById(String code, String year) {
-        return stationRepository.findStationByIdAndYear(code, year).orElseThrow();
+        return stationRepository.findStationByIdAndYear(code, year).orElseThrow(StationNotFoundException::new);
     }
 
     public List<StationResponseDTO> getStationsInformation(String year) {
@@ -45,7 +46,10 @@ public class StationService {
     }
 
     public WeatherSummaryResponseDTO getWeatherDataByDate(String code, LocalDate date) {
-        return stationRepository.getDataByDate(code, String.valueOf(date.getYear()), date.toString());
+        String year = String.valueOf(date.getYear());
+        getStationById(code, year);
+
+        return stationRepository.getDataByDate(code, year, date.toString());
     }
 
     private StationResponseDTO convertToStationResponseDTO(Station stationInform) {
