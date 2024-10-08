@@ -61,6 +61,89 @@ public class StationRepository {
         return new WeatherSummaryResponseDTO(getDataList(data), getMetricsList(metrics));
     }
 
+    public Page<WeatherSummaryResponseDTO> getDataByMonth(String code, String year, String month, int page, int size) {
+        List<AggregationOperation> dataMonthOperation = getDataOperationsByMonth(code, year, month);
+        List<AggregationOperation> metricsMonthOperation = getMetricsOperationByMonth(code, year, month);
+
+        Aggregation dataAggregation = Aggregation.newAggregation(dataMonthOperation);
+        Aggregation metricsAggregation = Aggregation.newAggregation(metricsMonthOperation);
+
+        List<Document> data = mongoTemplate.aggregate(dataAggregation, year, Document.class).getMappedResults();
+        Document metrics = mongoTemplate.aggregate(metricsAggregation, year, Document.class).getUniqueMappedResult();
+
+        WeatherSummaryResponseDTO responseDTO = new WeatherSummaryResponseDTO(getDataList(data), getMetricsList(metrics));
+
+        Pageable pageable = PageRequest.of(page, size);
+        List<Data> paginatedData = responseDTO.data().stream()
+                .skip(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .toList();
+
+        return new PageImpl<>(
+                    List.of(new WeatherSummaryResponseDTO(paginatedData, getMetricsList(metrics))),
+                    pageable, responseDTO.data().size() - 1);
+    }
+
+    private List<AggregationOperation> getMetricsOperationByMonth(String code, String year, String month) {
+        String regex = month.length() < 2 ? "^" + year + "-" + "0" + month : "^" + year + "-" + month;
+
+        return Arrays.asList(
+                Aggregation.unwind("DADOS"),
+                Aggregation.match(
+                        Criteria.where("_id").is(code)
+                                .and("DADOS.DATA").regex(regex)),
+                Aggregation.group()
+                        .avg("DADOS.PRECIPITACAO_TOTAL").as("mediaPrecipitacaoTotal")
+                        .avg("DADOS.PRESSAO_ATMOSFERICA_NIVEL_ESTACAO").as("mediaPressaoAtmosfericaNivelEstacao")
+                        .avg("DADOS.PRESSAO_ATMOSFERICA_MAX").as("mediaPressaoAtmosfericaMax")
+                        .avg("DADOS.PRESSAO_ATMOSFERICA_MIN").as("mediaPressaoAtmosfericaMin")
+                        .avg("DADOS.TEMP_BULBO_SECO").as("mediaTempBulboSeco")
+                        .avg("DADOS.TEMP_PONTO_ORVALHO").as("mediaTempPontoOrvalho")
+                        .avg("DADOS.TEMP_MAX").as("mediaTempMax")
+                        .avg("DADOS.TEMP_MIN").as("mediaTempMin")
+                        .avg("DADOS.TEMP_ORVALHO_MAX").as("mediaTempOrvalhoMax")
+                        .avg("DADOS.TEMP_ORVALHO_MIN").as("mediaTempOrvalhoMin")
+                        .avg("DADOS.UMIDADE_RELATIVA_MAX").as("mediaUmidadeRelativaMax")
+                        .avg("DADOS.UMIDADE_RELATIVA_MIN").as("mediaUmidadeRelativaMin")
+                        .avg("DADOS.UMIDADE_RELATIVA").as("mediaUmidadeRelativa")
+                        .avg("DADOS.VENTO_DIRECAO").as("mediaVentoDirecao")
+                        .avg("DADOS.VENTO_RAJADA_MAX").as("mediaVentoRajadaMax")
+                        .avg("DADOS.VENTO_VELOCIDADE").as("mediaVentoVelocidade")
+        );
+    }
+
+    private List<AggregationOperation> getDataOperationsByMonth(String code, String year, String month) {
+        String regex = month.length() < 2 ? "^" + year + "-" + "0" + month : "^" + year + "-" + month;
+
+        return Arrays.asList(
+                Aggregation.unwind("DADOS"),
+                Aggregation.match(
+                        Criteria.where("_id").is(code)
+                                .and("DADOS.DATA").regex(regex)),
+                Aggregation.project().
+                        andExclude("_id")
+                        .and("DADOS.DATA").as("data")
+                        .and("DADOS.HORA").as("hora")
+                        .and("DADOS.PRECIPITACAO_TOTAL").as("precipitacaoTotal")
+                        .and("DADOS.PRESSAO_ATMOSFERICA_NIVEL_ESTACAO").as("pressaoAtmosfericaNivelEstacao")
+                        .and("DADOS.PRESSAO_ATMOSFERICA_MAX").as("pressaoAtmosfericaMax")
+                        .and("DADOS.PRESSAO_ATMOSFERICA_MIN").as("pressaoAtmosfericaMin")
+                        .and("DADOS.RADIACAO_GLOBAL").as("radiacaoGlobal")
+                        .and("DADOS.TEMP_BULBO_SECO").as("tempBulboSeco")
+                        .and("DADOS.TEMP_PONTO_ORVALHO").as("tempPontoOrvalho")
+                        .and("DADOS.TEMP_MAX").as("tempMax")
+                        .and("DADOS.TEMP_MIN").as("tempMin")
+                        .and("DADOS.TEMP_ORVALHO_MAX").as("tempOrvalhoMax")
+                        .and("DADOS.TEMP_ORVALHO_MIN").as("tempOrvalhoMin")
+                        .and("DADOS.UMIDADE_RELATIVA_MAX").as("umidadeRelativaMax")
+                        .and("DADOS.UMIDADE_RELATIVA_MIN").as("umidadeRelativaMin")
+                        .and("DADOS.UMIDADE_RELATIVA").as("umidadeRelativa")
+                        .and("DADOS.VENTO_DIRECAO").as("ventoDirecao")
+                        .and("DADOS.VENTO_RAJADA_MAX").as("ventoRajadaMax")
+                        .and("DADOS.VENTO_VELOCIDADE").as("ventoVelocidade")
+        );
+    }
+
     private List<AggregationOperation> getMetricsOperation(String code, String date) {
         return Arrays.asList(
           Aggregation.unwind("DADOS"),
