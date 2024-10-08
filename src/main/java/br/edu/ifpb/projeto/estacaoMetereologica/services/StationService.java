@@ -5,6 +5,7 @@ import br.edu.ifpb.projeto.estacaoMetereologica.domain.Station;
 import br.edu.ifpb.projeto.estacaoMetereologica.dtos.WeatherSummaryResponseDTO;
 import br.edu.ifpb.projeto.estacaoMetereologica.dtos.StationResponseDTO;
 import br.edu.ifpb.projeto.estacaoMetereologica.repositories.StationRepository;
+import br.edu.ifpb.projeto.estacaoMetereologica.services.exceptions.InvalidMonthException;
 import br.edu.ifpb.projeto.estacaoMetereologica.services.exceptions.StationNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -50,6 +51,16 @@ public class StationService {
         getStationById(code, year);
 
         return stationRepository.getDataByDate(code, year, date.toString());
+    }
+
+    public Page<WeatherSummaryResponseDTO> getPaginatedDataByMonth(String code, String year, int month, int page, int size) {
+        getStationById(code, year);
+
+        if (month <= 0 || month >= 13) {
+            throw new InvalidMonthException();
+        }
+
+        return stationRepository.getDataByMonth(code, year, String.valueOf(month), page, size);
     }
 
     private StationResponseDTO convertToStationResponseDTO(Station stationInform) {
