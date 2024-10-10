@@ -4,6 +4,9 @@ import br.edu.ifpb.projeto.estacaoMetereologica.domain.Data;
 import br.edu.ifpb.projeto.estacaoMetereologica.domain.Station;
 import br.edu.ifpb.projeto.estacaoMetereologica.dtos.MetricsDTO;
 import br.edu.ifpb.projeto.estacaoMetereologica.dtos.WeatherSummaryResponseDTO;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoDatabase;
 import org.bson.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -16,6 +19,7 @@ import org.springframework.data.mongodb.core.aggregation.AggregationOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Repository;
+
 
 import java.util.*;
 
@@ -63,13 +67,11 @@ public class StationRepository {
 
     public Page<WeatherSummaryResponseDTO> getDataByMonth(String code, String year, String month, int page, int size) {
         List<AggregationOperation> dataMonthOperation = getDataOperationsByMonth(code, year, month);
-        List<AggregationOperation> metricsMonthOperation = getMetricsOperationByMonth(code, year, month);
 
         Aggregation dataAggregation = Aggregation.newAggregation(dataMonthOperation);
-        Aggregation metricsAggregation = Aggregation.newAggregation(metricsMonthOperation);
 
         List<Document> data = mongoTemplate.aggregate(dataAggregation, year, Document.class).getMappedResults();
-        Document metrics = mongoTemplate.aggregate(metricsAggregation, year, Document.class).getUniqueMappedResult();
+        Document metrics = getMetricsOperationByMonth(code, year, month);
 
         WeatherSummaryResponseDTO responseDTO = new WeatherSummaryResponseDTO(getDataList(data), getMetricsList(metrics));
 
@@ -84,32 +86,41 @@ public class StationRepository {
                     pageable, responseDTO.data().size() - 1);
     }
 
-    private List<AggregationOperation> getMetricsOperationByMonth(String code, String year, String month) {
-        String regex = month.length() < 2 ? "^" + year + "-" + "0" + month : "^" + year + "-" + month;
+    private Document getMetricsOperationByMonth(String code, String year, String month) {
+        String regex = month.length() < 2 ? "^" + year + "-0" + month : "^" + year + "-" + month;
 
-        return Arrays.asList(
-                Aggregation.unwind("DADOS"),
-                Aggregation.match(
-                        Criteria.where("_id").is(code)
-                                .and("DADOS.DATA").regex(regex)),
-                Aggregation.group()
-                        .avg("DADOS.PRECIPITACAO_TOTAL").as("mediaPrecipitacaoTotal")
-                        .avg("DADOS.PRESSAO_ATMOSFERICA_NIVEL_ESTACAO").as("mediaPressaoAtmosfericaNivelEstacao")
-                        .avg("DADOS.PRESSAO_ATMOSFERICA_MAX").as("mediaPressaoAtmosfericaMax")
-                        .avg("DADOS.PRESSAO_ATMOSFERICA_MIN").as("mediaPressaoAtmosfericaMin")
-                        .avg("DADOS.TEMP_BULBO_SECO").as("mediaTempBulboSeco")
-                        .avg("DADOS.TEMP_PONTO_ORVALHO").as("mediaTempPontoOrvalho")
-                        .avg("DADOS.TEMP_MAX").as("mediaTempMax")
-                        .avg("DADOS.TEMP_MIN").as("mediaTempMin")
-                        .avg("DADOS.TEMP_ORVALHO_MAX").as("mediaTempOrvalhoMax")
-                        .avg("DADOS.TEMP_ORVALHO_MIN").as("mediaTempOrvalhoMin")
-                        .avg("DADOS.UMIDADE_RELATIVA_MAX").as("mediaUmidadeRelativaMax")
-                        .avg("DADOS.UMIDADE_RELATIVA_MIN").as("mediaUmidadeRelativaMin")
-                        .avg("DADOS.UMIDADE_RELATIVA").as("mediaUmidadeRelativa")
-                        .avg("DADOS.VENTO_DIRECAO").as("mediaVentoDirecao")
-                        .avg("DADOS.VENTO_RAJADA_MAX").as("mediaVentoRajadaMax")
-                        .avg("DADOS.VENTO_VELOCIDADE").as("mediaVentoVelocidade")
-        );
+        MongoDatabase database = mongoTemplate.getDb();
+        MongoCollection<Document> collection = database.getCollection(year);
+
+        List<Document> pipeline = new ArrayList<>();
+
+        pipeline.add(new Document("$match", new Document("_id", code)));
+        pipeline.add(new Document("$unwind", "$DADOS"));
+        pipeline.add(new Document("$match", new Document("DADOS.DATA", new Document("$regex", regex))));
+
+        Document groupStage = new Document("_id", null)
+                .append("mediaPrecipitacaoTotal", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.PRECIPITACAO_TOTAL", 0)), "$DADOS.PRECIPITACAO_TOTAL", null))))
+                .append("mediaPressaoAtmosfericaNivelEstacao", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.PRESSAO_ATMOSFERICA_NIVEL_ESTACAO", 0)), "$DADOS.PRESSAO_ATMOSFERICA_NIVEL_ESTACAO", null))))
+                .append("mediaPressaoAtmosfericaMax", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.PRESSAO_ATMOSFERICA_MAX", 0)), "$DADOS.PRESSAO_ATMOSFERICA_MAX", null))))
+                .append("mediaPressaoAtmosfericaMin", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.PRESSAO_ATMOSFERICA_MIN", 0)), "$DADOS.PRESSAO_ATMOSFERICA_MIN", null))))
+                .append("mediaTempBulboSeco", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.TEMP_BULBO_SECO", 0)), "$DADOS.TEMP_BULBO_SECO", null))))
+                .append("mediaTempPontoOrvalho", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.TEMP_PONTO_ORVALHO", 0)), "$DADOS.TEMP_PONTO_ORVALHO", null))))
+                .append("mediaTempMax", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.TEMP_MAX", 0)), "$DADOS.TEMP_MAX", null))))
+                .append("mediaTempMin", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.TEMP_MIN", 0)), "$DADOS.TEMP_MIN", null))))
+                .append("mediaTempOrvalhoMax", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.TEMP_ORVALHO_MAX", 0)), "$DADOS.TEMP_ORVALHO_MAX", null))))
+                .append("mediaTempOrvalhoMin", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.TEMP_ORVALHO_MIN", 0)), "$DADOS.TEMP_ORVALHO_MIN", null))))
+                .append("mediaUmidadeRelativaMax", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.UMIDADE_RELATIVA_MAX", 0)), "$DADOS.UMIDADE_RELATIVA_MAX", null))))
+                .append("mediaUmidadeRelativaMin", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.UMIDADE_RELATIVA_MIN", 0)), "$DADOS.UMIDADE_RELATIVA_MIN", null))))
+                .append("mediaUmidadeRelativa", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.UMIDADE_RELATIVA", 0)), "$DADOS.UMIDADE_RELATIVA", null))))
+                .append("mediaVentoDirecao", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.VENTO_DIRECAO", 0)), "$DADOS.VENTO_DIRECAO", null))))
+                .append("mediaVentoRajadaMax", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.VENTO_RAJADA_MAX", 0)), "$DADOS.VENTO_RAJADA_MAX", null))))
+                .append("mediaVentoVelocidade", new Document("$avg", new Document("$cond", Arrays.asList(new Document("$gte", Arrays.asList("$DADOS.VENTO_VELOCIDADE", 0)), "$DADOS.VENTO_VELOCIDADE", null))));
+
+        pipeline.add(new Document("$group", groupStage));
+
+        MongoCursor<Document> cursor = collection.aggregate(pipeline).iterator();
+
+        return cursor.hasNext() ? cursor.next() : null;
     }
 
     private List<AggregationOperation> getDataOperationsByMonth(String code, String year, String month) {

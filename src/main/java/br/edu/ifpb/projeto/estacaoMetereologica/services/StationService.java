@@ -21,9 +21,6 @@ public class StationService {
     @Autowired
     private StationRepository stationRepository;
 
-    public List<Station> getAllStationsData(String year){
-        return stationRepository.findByYear(year).orElseThrow(StationNotFoundException::new);
-    }
 
     public Station getStationById(String code, String year) {
         return stationRepository.findStationByIdAndYear(code, year).orElseThrow(StationNotFoundException::new);
@@ -76,4 +73,7 @@ public class StationService {
         );
     }
 
+    private List<Station> getAllStationsData(String year){
+        return stationRepository.findByYear(year).orElseThrow(StationNotFoundException::new);
+    }
 }

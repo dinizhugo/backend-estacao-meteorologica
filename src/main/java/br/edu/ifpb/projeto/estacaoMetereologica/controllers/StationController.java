@@ -30,11 +30,6 @@ public class StationController {
         return ResponseEntity.ok(service.getStationsInformationById(code, year));
     }
 
-    @GetMapping("/year/{id}")
-    public ResponseEntity<List<Station>> getStationsByYear(@PathVariable String id) {
-        return ResponseEntity.ok(service.getAllStationsData(id));
-    }
-
     @GetMapping("/data/{year}/{code}")
     public ResponseEntity<Page<Data>> getStationDataById(@PathVariable String year,
                                                      @PathVariable String code,
