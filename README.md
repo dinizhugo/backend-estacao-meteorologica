@@ -17,25 +17,21 @@ Este projeto consiste em uma API para gerenciar dados meteorológicos de estaç�
 
 ### Endpoints
 
-1. **Obter informações de estações meteorológicas por ano**:
-   - `GET /api/estacoes/info/{year}`
-   - Retorna uma lista de informações sobre as estações disponíveis para o ano especificado.
+1. **Obter informações de todas as estações meteorológicas**:
+   - `GET /api/estacoes/info`
+   - Retorna uma lista de informações sobre as estações disponíveis.
 
-2. **Obter informações de uma estação específica por código e ano**:
-   - `GET /api/estacoes/info/{year}/{code}`
-   - Retorna informações detalhadas de uma estação específica pelo código e ano.
+2. **Obter informações de uma estação específica por código**:
+   - `GET /api/estacoes/info/{code}`
+   - Retorna informações detalhadas de uma estação específica pelo código.
 
-3. **Paginação dos dados meteorológicos de uma estação por código e ano**:
-   - `GET /api/estacoes/data/{year}/{code}?page=0?size=24`
-   - Retorna uma página com os dados meteorológicos(e as médias) de uma estação específica.
-
-4. **Resumo dos dados meteorológicos de uma estação por data**:
+3. **Resumo dos dados meteorológicos de uma estação por data**:
    - `GET /api/estacoes/data/{code}?date=2024-01-01`
    - Retorna um resumo dos dados meteorológicos em uma data específica.
 
-5. **Paginação dos dados meteorológicos de uma estação por código, ano e mês**:
-   - `GET /api/estacoes/data/{year}/{month}/{code}?page=0?size=24`
-   - Retorna uma página com os dados meteorológicos(e as médias) de uma estação específica a partir do ano e mês.
+4. **Retorna os dados meteorológicos de uma estação por código, ano e mês**:
+   - `GET /api/estacoes/data/{code}/{year}/{month}`
+   - Retorna os dados meteorológicos(e as médias) de uma estação específica a partir do ano e mês.
 
 ## Tecnologias Utilizadas
 
@@ -74,19 +70,19 @@ Este projeto consiste em uma API para gerenciar dados meteorológicos de estaç�
 
 ## Estrutura de Dados
 
-### Station
+### Station Information
 
 Representa uma estação meteorológica e suas informações básicas.
 
 ```json
 {
-  "estacao": "Nome da Estação",
-  "uf": "Estado",
-  "codigo": "Código da Estação",
-  "latitude": -7.12345,
-  "longitude": -35.67890,
-  "dataFundacao": "dd/mm/yy",
-  "dados": []
+   "id": "Codigo da estação",
+   "uf": "Uf",
+   "estacao": "Nome da estação",
+   "codigo": "Codigo",
+   "latitude": "Latitude",
+   "longitude": "Longitude",
+   "dataFundacao": "DD/MM/YYYY"
 }
 ```
 
@@ -96,10 +92,23 @@ Contém as leituras meteorológicas de uma estação.
 
 ```json
 {
-  "data": "yyyy-mm-dd",
-  "hora": "hhhh UTC",
-  "precipitacaoTotal": 12.34,
-  "pressaoAtmosfericaNivelEstacao": 1013.25,
-  ...
+     "metrics": [
+       {
+         "hora": "0000 UTC",
+         "precipitacaoTotal": 0.0,
+         "pressaoAtmosfericaNivelEstacao": 950.0,
+         "pressaoAtmosfericaMax": 950.0,
+         "pressaoAtmosfericaMin": 949.4,
+         ...
+       }
+        ...
+     ],
+     "averages": {
+       "mediaPrecipitacaoTotal": 0.0,
+       "mediaPressaoAtmosfericaNivelEstacao": 948.8249999999999,
+       "mediaPressaoAtmosfericaMax": 949.0833333333334,
+       "mediaPressaoAtmosfericaMin": 948.525,
+       ...,
+     }
 }
 ```
