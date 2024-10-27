@@ -1,19 +1,20 @@
 package br.edu.ifpb.projeto.estacaoMetereologica.domain;
 
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.io.Serializable;
-import java.util.Set;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Station implements Serializable {
+@Document(collection = "informacoes_estacoes")
+public class StationInformation implements Serializable {
 
-    @EqualsAndHashCode.Include
+    @Id
     private String id;
 
     @Field("UF")
@@ -33,7 +34,4 @@ public class Station implements Serializable {
 
     @Field("DATA_FUNDAÇÃO")
     private String dataFundacao;
-
-    @Field("DADOS")
-    private Set<Data> dados;
 }

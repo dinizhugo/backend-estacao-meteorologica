@@ -1,21 +1,16 @@
 package br.edu.ifpb.projeto.estacaoMetereologica.domain;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.mongodb.core.mapping.Field;
-
 
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
-public class Data {
-
-    @EqualsAndHashCode.Include
-    @Field("DATA")
-    private String data;
-
-    @EqualsAndHashCode.Include
+public class WeatherMetrics {
     @Field("HORA")
     private String hora;
 
@@ -69,5 +64,4 @@ public class Data {
 
     @Field("VENTO_VELOCIDADE")
     private Double ventoVelocidade;
-
 }

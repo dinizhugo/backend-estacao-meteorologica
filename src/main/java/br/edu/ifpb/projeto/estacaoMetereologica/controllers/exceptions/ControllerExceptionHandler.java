@@ -1,6 +1,7 @@
 package br.edu.ifpb.projeto.estacaoMetereologica.controllers.exceptions;
 
 import br.edu.ifpb.projeto.estacaoMetereologica.services.exceptions.InvalidMonthException;
+import br.edu.ifpb.projeto.estacaoMetereologica.services.exceptions.ResultsNotFoundException;
 import br.edu.ifpb.projeto.estacaoMetereologica.services.exceptions.StationNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -33,8 +34,16 @@ public class ControllerExceptionHandler {
 
     @ExceptionHandler(InvalidMonthException.class)
     public ResponseEntity<StandardError> invalidMonthException(InvalidMonthException e, HttpServletRequest request) {
-        String error = "Invalid Month.";
+        String error = "Invalid month.";
         HttpStatus status = HttpStatus.BAD_REQUEST;
+        StandardError err = new StandardError(Instant.now(), status.value(), error, e.getMessage(), request.getRequestURI());
+        return ResponseEntity.status(status).body(err);
+    }
+
+    @ExceptionHandler(ResultsNotFoundException.class)
+    public ResponseEntity<StandardError> resultsNotFoundException(ResultsNotFoundException e, HttpServletRequest request) {
+        String error = "Results not found.";
+        HttpStatus status = HttpStatus.NOT_FOUND;
         StandardError err = new StandardError(Instant.now(), status.value(), error, e.getMessage(), request.getRequestURI());
         return ResponseEntity.status(status).body(err);
     }
