@@ -1,12 +1,11 @@
 package br.edu.ifpb.projeto.estacaoMetereologica.controllers;
 
-import br.edu.ifpb.projeto.estacaoMetereologica.domain.Data;
-import br.edu.ifpb.projeto.estacaoMetereologica.domain.Station;
-import br.edu.ifpb.projeto.estacaoMetereologica.dtos.WeatherSummaryResponseDTO;
-import br.edu.ifpb.projeto.estacaoMetereologica.dtos.StationResponseDTO;
-import br.edu.ifpb.projeto.estacaoMetereologica.services.StationService;
+import br.edu.ifpb.projeto.estacaoMetereologica.domain.StationInformation;
+import br.edu.ifpb.projeto.estacaoMetereologica.dtos.WeatherMetricsDTO;
+import br.edu.ifpb.projeto.estacaoMetereologica.dtos.WeatherMetricsMonthlyDTO;
+import br.edu.ifpb.projeto.estacaoMetereologica.services.StationInformationService;
+import br.edu.ifpb.projeto.estacaoMetereologica.services.WeatherStationDataService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,37 +17,31 @@ import java.util.List;
 public class StationController {
 
     @Autowired
-    private StationService service;
+    private WeatherStationDataService weatherStationDataService;
 
-    @GetMapping("/info/{year}")
-    public ResponseEntity<List<StationResponseDTO>> getStationsInfo(@PathVariable String year) {
-        return ResponseEntity.ok(service.getStationsInformation(year));
+    @Autowired
+    private StationInformationService stationInformationService;
+
+    @GetMapping("/info")
+    public ResponseEntity<List<StationInformation>> getStationsInfo() {
+        return ResponseEntity.ok(stationInformationService.getAllStationsInformation());
     }
 
-    @GetMapping("/info/{year}/{code}")
-    public ResponseEntity<StationResponseDTO> getStationsInfoById(@PathVariable String year, @PathVariable String code) {
-        return ResponseEntity.ok(service.getStationsInformationById(code, year));
-    }
-
-    @GetMapping("/data/{year}/{code}")
-    public ResponseEntity<Page<Data>> getStationDataById(@PathVariable String year,
-                                                     @PathVariable String code,
-                                                     @RequestParam(defaultValue = "0") int page,
-                                                     @RequestParam(defaultValue = "24") int size) {
-        return ResponseEntity.ok(service.getPaginatedDataForStationAndYear(code, year, page, size));
+    @GetMapping("/info/{code}")
+    public ResponseEntity<StationInformation> getStationsInfoById(@PathVariable String code) {
+        return ResponseEntity.ok(stationInformationService.findStationInformationById(code));
     }
 
     @GetMapping("/data/{code}")
-    public ResponseEntity<WeatherSummaryResponseDTO> getStatioDataByDate(@PathVariable String code, @RequestParam LocalDate date) {
-        return ResponseEntity.ok(service.getWeatherDataByDate(code, date));
+    public ResponseEntity<WeatherMetricsDTO> getStatioDataByDate(@PathVariable String code, @RequestParam LocalDate date) {
+        return ResponseEntity.ok(weatherStationDataService.getWeatherDataByDate(code, date));
     }
 
-    @GetMapping("/data/{year}/{month}/{code}")
-    public ResponseEntity<Page<WeatherSummaryResponseDTO>> getDataByMonth(    @PathVariable String year,
+    @GetMapping("/data/{code}/{year}/{month}")
+    public ResponseEntity<WeatherMetricsMonthlyDTO> getDataByMonth(
+                                                         @PathVariable String year,
                                                          @PathVariable String code,
-                                                         @PathVariable int month,
-                                                         @RequestParam(defaultValue = "0") int page,
-                                                         @RequestParam(defaultValue = "24") int size) {
-        return ResponseEntity.ok(service.getPaginatedDataByMonth(code, year, month, page, size));
+                                                         @PathVariable int month) {
+        return ResponseEntity.ok(weatherStationDataService.getPaginatedDataByMonth(code, year, month));
     }
 }
